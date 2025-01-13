@@ -1,3 +1,9 @@
+!pip install selenium
+!apt-get update # для обновления репозиториев
+!apt install -y chromium-chromedriver # установка браузера Chrome и ChromeDriver
+!cp /usr/lib/chromium-browser/chromedriver /usr/bin # копирование драйвера в нужное место
+!pip install webdriver_manager # для упрощенной работы с драйверами
+
 import time
 import random
 import string
@@ -7,6 +13,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from telegram import Bot
 from telegram.ext import Updater, CommandHandler
+from webdriver_manager.chrome import ChromeDriverManager
 
 # Константы для ограничения запросов
 TIME_WINDOW = 60  # в секундах
@@ -94,7 +101,9 @@ def create_email():
 def register_account():
     chrome_options = Options()
     chrome_options.add_argument('--headless')  # Работает в фоновом режиме
-    driver = webdriver.Chrome(options=chrome_options)
+    chrome_options.add_argument('--no-sandbox')  # Для работы в Docker/Colab
+    chrome_options.add_argument('--disable-dev-shm-usage')  # Для Colab
+    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
 
     try:
         # Переход по ссылке регистрации
