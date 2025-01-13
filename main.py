@@ -162,7 +162,7 @@ def click_save_button(url):
         response.html.render(sleep=3)  # Рендерим JavaScript на странице (если есть)
 
         # Находим кнопку с текстом 'Сохранить'
-        save_button = response.html.xpath("//button[text()='Сохранить']", first=True)
+        save_button = response.html.find('input[type="submit"][value="Сохранить"]', first=True)
         
         if save_button:
             # Выполняем клик по кнопке
