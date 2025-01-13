@@ -136,8 +136,9 @@ async def start(update: Update, context: CallbackContext):
         is_running = True
         await update.message.reply_text("Цикл регистрации начался!")
         logger.info("Цикл регистрации начался")
-        thread = Thread(target=register_cycle, args=(update, context))
-        thread.start()
+        
+        # Запускаем асинхронную задачу для выполнения цикла регистрации
+        asyncio.create_task(register_cycle(update, context))  # Запускаем как асинхронную задачу
     else:
         await update.message.reply_text("Цикл уже запущен.")
 
@@ -159,7 +160,7 @@ async def register_cycle(update: Update, context: CallbackContext):
             if email_data is None:
                 logger.warning("Не удалось создать почту, пробую снова...")
                 await update.message.reply_text("Не удалось создать почту, пробую снова...")
-                time.sleep(5)
+                await asyncio.sleep(5)  # Используем асинхронный sleep вместо time.sleep
                 continue
 
             temp_email, temp_email_password = email_data
@@ -205,13 +206,12 @@ async def register_cycle(update: Update, context: CallbackContext):
             logger.info(f"Шаг 5: Переход по ссылке enter_club. Статус: {club_response.status_code}")
 
             # Пауза между регистрациями (например, 10 секунд)
-            time.sleep(10)
+            await asyncio.sleep(10)  # Используем асинхронный sleep
 
         except Exception as e:
             logger.error(f"Ошибка при регистрации: {str(e)}")
             await update.message.reply_text(f"Ошибка: {str(e)}")
             break
-
 
 async def main():
     """Запуск бота"""
