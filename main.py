@@ -138,9 +138,10 @@ async def start(update: Update, context: CallbackContext):
         logger.info("Цикл регистрации начался")
         
         # Запускаем асинхронную задачу для выполнения цикла регистрации
-        asyncio.create_task(register_cycle(update, context))  # Запускаем как асинхронную задачу
+        await register_cycle(update, context)  # Запускаем как асинхронную задачу
     else:
         await update.message.reply_text("Цикл уже запущен.")
+
 
 
 async def stop(update: Update, context: CallbackContext):
