@@ -156,6 +156,14 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.action_chains import ActionChains
 import time
 
+# Устанавливаем необходимые зависимости для Colab:
+!apt-get update # Обновление репозиториев
+!apt-get install -y wget curl unzip # Устанавливаем необходимые утилиты
+!apt-get install -y chromium-driver # Установка драйвера Chrome
+
+# Указываем путь до бинарного файла Chrome
+chrome_path = '/usr/bin/chromium-browser'
+
 def click_save_button(url):
     """Функция для перехода по ссылке и нажатия кнопки 'Сохранить'."""
     # Инициализация драйвера
@@ -163,6 +171,7 @@ def click_save_button(url):
     options.add_argument("--headless")  # Запуск браузера в фоновом режиме, без GUI
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument(f'--binary={chrome_path}')  # Указываем путь к бинарному файлу Chrome
     
     # Запуск Chrome с использованием WebDriver
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
