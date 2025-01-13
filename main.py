@@ -1,4 +1,4 @@
-from requests_html import HTMLSession
+from requests_html import AsyncHTMLSession
 import logging
 import random
 import string
@@ -15,9 +15,6 @@ mail_client = None  # Отсутствует реальная инициализ
 
 # Переменная для отслеживания состояния цикла
 is_running = False  # Инициализация переменной
-
-# Инициализация сессии requests_html
-session = HTMLSession()
 
 # Функция для получения токена из файла
 def get_token_from_file():
@@ -154,28 +151,27 @@ async def stop(update: Update, context: CallbackContext):
     logger.info("Цикл регистрации остановлен.")
 
 # Функция для перехода по ссылке и нажатия кнопки 'Сохранить'
-def click_save_button(url):
-    """Переход по URL и клик по кнопке 'Сохранить'."""
+async def click_save_button(url):
+    """Функция для перехода по ссылке и нажатия кнопки 'Сохранить'."""
+    # Инициализация сессии
+    session = AsyncHTMLSession()
+
     try:
-        # Получаем страницу
-        response = session.get(url)
-        response.html.render(sleep=3)  # Рендерим JavaScript на странице (если есть)
+        # Переход по URL
+        response = await session.get(url)
+        await response.html.arender()  # Ожидание отрисовки страницы
 
-        # Находим кнопку с текстом 'Сохранить'
-        save_button = response.html.find('input[type="submit"][value="Сохранить"]', first=True)
-        
-        if save_button:
-            # Выполняем клик по кнопке
-            save_button.click()
+        # Поиск кнопки с текстом 'Сохранить' и нажатие
+        save_button = response.html.find('button', containing='Сохранить')[0]
+        await save_button.click()
 
-            # Ждем немного после клика, чтобы страница успела обработать запрос
-            time.sleep(2)
-
-            print("Кнопка 'Сохранить' нажата успешно.")
-        else:
-            print("Не удалось найти кнопку 'Сохранить'.")
+        print("Кнопка 'Сохранить' нажата успешно.")
+    
     except Exception as e:
         print(f"Ошибка при нажатии кнопки: {e}")
+    finally:
+        # Закрытие сессии
+        await session.close()
 
 async def register_cycle(update: Update, context: CallbackContext):
     """Цикл регистрации аккаунтов"""
@@ -215,7 +211,7 @@ async def register_cycle(update: Update, context: CallbackContext):
             save_data_url = f'https://mpets.mobi/save?name={nickname}&password={password}&email={temp_email}'
             
             # Теперь вызываем функцию для клика по кнопке "Сохранить"
-            click_save_button(save_data_url)
+            await click_save_button(save_data_url)
 
             # Шаг 4: Отправка данных в Telegram по user_id
             user_data = f"Никнейм: {nickname}\nПароль: {password}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
