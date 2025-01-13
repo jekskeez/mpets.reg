@@ -23,14 +23,13 @@ is_running = False
 nest_asyncio.apply()
 
 # Настройка логирования
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)  # Уровень DEBUG для более подробного логирования
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def generate_username(length=8):
     """Генерация случайного имени пользователя."""
     username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
-    logger.debug(f"Сгенерировано имя пользователя: {username}")
+    logger.info(f"Сгенерировано имя пользователя: {username}")
     return username
 
 
@@ -41,7 +40,7 @@ def get_available_domains():
         if response.status_code == 200:
             data = response.json()
             domains = [domain['domain'] for domain in data['hydra:member']]
-            logger.debug(f"Получены домены: {domains}")
+            logger.info(f"Получены домены: {domains}")
             return domains
         else:
             logger.error(f"Не удалось получить список доменов. Код ответа: {response.status_code}")
@@ -124,11 +123,11 @@ def register_cycle(update: Update, context: CallbackContext):
 
             # Шаг 1: Переход по ссылке mpets.mobi/start
             start_response = session.get('https://mpets.mobi/start')
-            logger.debug(f"Шаг 1 - Переход по ссылке mpets.mobi/start: {start_response.status_code}")
+            logger.info(f"Шаг 1: Переход по ссылке mpets.mobi/start. Статус: {start_response.status_code}")
 
             # Шаг 2: Переход по ссылке save_gender
             gender_response = session.get('https://mpets.mobi/save_gender?type=12')
-            logger.debug(f"Шаг 2 - Переход по ссылке save_gender: {gender_response.status_code}")
+            logger.info(f"Шаг 2: Переход по ссылке save_gender. Статус: {gender_response.status_code}")
 
             # Шаг 3: Переход по ссылке save для ввода данных
             save_data_url = 'https://mpets.mobi/save'
@@ -138,16 +137,16 @@ def register_cycle(update: Update, context: CallbackContext):
                 'email': temp_email
             }
             save_response = session.post(save_data_url, data=data)
-            logger.debug(f"Шаг 3 - Данные отправлены на save: {save_response.status_code}")
+            logger.info(f"Шаг 3: Отправка данных на save. Статус: {save_response.status_code}")
 
             # Шаг 4: Отправка данных в Telegram
             user_data = f"Никнейм: {data['nickname']}\nПароль: {data['password']}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
-            logger.info(f"Шаг 4 - Отправка данных в Telegram: {user_data}")
+            logger.info(f"Шаг 4: Отправка данных в Telegram: {user_data}")
             asyncio.run_coroutine_threadsafe(update.message.reply_text(user_data), asyncio.get_event_loop())
 
             # Шаг 5: Переход по ссылке enter_club
             club_response = session.get('https://mpets.mobi/enter_club?id=6694')
-            logger.debug(f"Шаг 5 - Переход по ссылке enter_club: {club_response.status_code}")
+            logger.info(f"Шаг 5: Переход по ссылке enter_club. Статус: {club_response.status_code}")
 
             # Пауза между регистрациями (например, 10 секунд)
             time.sleep(10)
