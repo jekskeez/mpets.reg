@@ -4,7 +4,7 @@ import string
 import requests
 import time
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Application, CommandHandler, CallbackContext
 from threading import Thread
 from pymailtm import MailTm
 import asyncio
@@ -72,23 +72,23 @@ def create_email():
         return None
 
 
-def start(update: Update, context: CallbackContext):
+async def start(update: Update, context: CallbackContext):
     """Запуск цикла регистрации"""
     global is_running
     if not is_running:
         is_running = True
-        update.message.reply_text("Цикл регистрации начался!")
+        await update.message.reply_text("Цикл регистрации начался!")
         thread = Thread(target=register_cycle, args=(update, context))
         thread.start()
     else:
-        update.message.reply_text("Цикл уже запущен.")
+        await update.message.reply_text("Цикл уже запущен.")
 
 
-def stop(update: Update, context: CallbackContext):
+async def stop(update: Update, context: CallbackContext):
     """Остановка цикла регистрации"""
     global is_running
     is_running = False
-    update.message.reply_text("Цикл регистрации остановлен.")
+    await update.message.reply_text("Цикл регистрации остановлен.")
 
 
 def register_cycle(update: Update, context: CallbackContext):
@@ -144,15 +144,14 @@ async def main():
                         level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    updater = Updater(TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
+    application = Application.builder().token(TOKEN).build()
 
     # Обработчики команд
-    dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(CommandHandler('stop', stop))
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler('stop', stop))
 
     # Запуск бота
-    await updater.start_polling()
+    await application.run_polling()
 
 
 # Используем асинхронный запуск
