@@ -151,10 +151,8 @@ async def stop(update: Update, context: CallbackContext):
     logger.info("Цикл регистрации остановлен.")
 
 # Функция для перехода по ссылке и нажатия кнопки 'Сохранить'
-async def click_save_button(url):
+async def click_save_button(session, url):
     """Функция для перехода по ссылке и нажатия кнопки 'Сохранить'."""
-    session = AsyncHTMLSession()
-
     try:
         # Переход по URL
         response = await session.get(url)
@@ -177,14 +175,10 @@ async def click_save_button(url):
     
     except Exception as e:
         print(f"Ошибка при нажатии кнопки: {e}")
-    
-    finally:
-        # Закрытие сессии
-        await session.close()
 
-async def register_cycle(update: Update, context: CallbackContext):
-    """Цикл регистрации аккаунтов"""
-    while is_running:
+async def register_cycle(session, update, context):
+    """Цикл регистрации аккаунтов, выполняющий все шаги в одной сессии."""
+    while True:
         try:
             # Генерация одной строки для никнейма, пароля и пароля почты
             username = generate_username()
@@ -220,7 +214,7 @@ async def register_cycle(update: Update, context: CallbackContext):
             save_data_url = f'https://mpets.mobi/save?name={nickname}&password={password}&email={temp_email}'
             
             # Теперь вызываем функцию для клика по кнопке "Сохранить"
-            await click_save_button(save_data_url)
+            await click_save_button(session, save_data_url)
 
             # Шаг 4: Отправка данных в Telegram по user_id
             user_data = f"Никнейм: {nickname}\nПароль: {password}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
@@ -241,6 +235,7 @@ async def register_cycle(update: Update, context: CallbackContext):
             
 async def main():
     """Запуск бота"""
+    session = AsyncHTMLSession()  # Создаем сессию один раз
     application = Application.builder().token(TOKEN).build()
 
     # Обработчики команд
@@ -250,7 +245,8 @@ async def main():
     # Запуск бота
     await application.run_polling()
 
+    # После запуска бота начинаем цикл регистрации
+    await register_cycle(session)  # Передаем сессию в цикл
 
-# Запускаем основной цикл бота
 if __name__ == '__main__':
     asyncio.get_event_loop().run_until_complete(main())
