@@ -8,6 +8,7 @@ from telegram.ext import Application, CommandHandler, CallbackContext
 from threading import Thread
 from pymailtm import MailTm
 import asyncio
+import nest_asyncio
 
 # Инициализация клиента для работы с Mail.tm
 mail_client = MailTm()
@@ -18,6 +19,8 @@ TOKEN = '7782933862:AAHpwHk04nZVoAu9IlwTEJLxh_ob6pLiKHQ'
 # Для хранения состояния (активен ли цикл)
 is_running = False
 
+# Применяем nest_asyncio
+nest_asyncio.apply()
 
 def generate_username(length=8):
     """Генерация случайного имени пользователя."""
