@@ -150,23 +150,25 @@ async def stop(update: Update, context: CallbackContext):
     logger.info("Цикл регистрации остановлен.")
 
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.options import Options
 import time
 
-# Указываем путь до бинарного файла Chrome
 chrome_path = '/usr/bin/chromium-browser'
 
 def click_save_button(url):
     """Функция для перехода по ссылке и нажатия кнопки 'Сохранить'."""
     # Инициализация драйвера
-    options = webdriver.ChromeOptions()
+    options = Options()
     options.add_argument("--headless")  # Запуск браузера в фоновом режиме, без GUI
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument(f'--binary={chrome_path}')  # Указываем путь к бинарному файлу Chrome
+    options.add_argument('--remote-debugging-port=9222')  # Устанавливаем порт для удаленной отладки
+    options.add_argument('--disable-software-rasterizer')  # Отключаем программное растеризование
+    options.add_argument('--disable-gpu')  # Отключаем GPU, что помогает в некоторых случаях с Google Colab
     
     # Запуск Chrome с использованием WebDriver
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
@@ -193,6 +195,7 @@ def click_save_button(url):
     finally:
         # Закрываем браузер
         driver.quit()
+
 
 async def register_cycle(update: Update, context: CallbackContext):
     """Цикл регистрации аккаунтов"""
