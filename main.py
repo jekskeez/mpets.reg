@@ -50,7 +50,7 @@ request_count = 0
 last_request_time = time.time()
 
 def generate_username(length=8):
-    """Генерация случайного имени пользователя."""
+    """Генерация случайного имени пользователя, которое будет использоваться для никнейма, пароля и пароля почты."""
     username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
     logger.info(f"Сгенерировано имя пользователя: {username}")
     return username
@@ -142,8 +142,6 @@ async def start(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("Цикл уже запущен.")
 
-
-
 async def stop(update: Update, context: CallbackContext):
     """Остановка цикла регистрации"""
     global is_running
@@ -151,12 +149,14 @@ async def stop(update: Update, context: CallbackContext):
     await update.message.reply_text("Цикл регистрации остановлен.")
     logger.info("Цикл регистрации остановлен.")
 
-
 async def register_cycle(update: Update, context: CallbackContext):
     """Цикл регистрации аккаунтов"""
     while is_running:
         try:
-            # Создаем временную почту
+            # Генерация одной строки для никнейма, пароля и пароля почты
+            username = generate_username()
+
+            # Создаем почту с тем же username
             email_data = create_email()
             if email_data is None:
                 logger.warning("Не удалось создать почту, пробую снова...")
@@ -181,8 +181,9 @@ async def register_cycle(update: Update, context: CallbackContext):
             logger.info(f"Шаг 2: Переход по ссылке save_gender. Статус: {gender_response.status_code}")
 
             # Шаг 3: Переход по ссылке save для ввода данных с параметрами в URL
-            nickname = generate_username()
-            password = generate_username(10)
+            # Используем сгенерированное имя для никнейма и пароля
+            nickname = username
+            password = username  # Пароль такой же как и никнейм
 
             # Формируем ссылку с параметрами
             save_data_url = f'https://mpets.mobi/save?name={nickname}&password={password}&email={temp_email}'
@@ -213,7 +214,7 @@ async def register_cycle(update: Update, context: CallbackContext):
             logger.error(f"Ошибка при регистрации: {str(e)}")
             await update.message.reply_text(f"Ошибка: {str(e)}")
             break
-
+            
 async def main():
     """Запуск бота"""
     application = Application.builder().token(TOKEN).build()
