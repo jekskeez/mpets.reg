@@ -153,22 +153,31 @@ async def stop(update: Update, context: CallbackContext):
 # Функция для перехода по ссылке и нажатия кнопки 'Сохранить'
 async def click_save_button(url):
     """Функция для перехода по ссылке и нажатия кнопки 'Сохранить'."""
-    # Инициализация сессии
     session = AsyncHTMLSession()
 
     try:
         # Переход по URL
         response = await session.get(url)
-        await response.html.arender()  # Ожидание отрисовки страницы
+        
+        # Ожидание рендеринга страницы
+        await response.html.arender()
 
-        # Поиск кнопки с текстом 'Сохранить' и нажатие
-        save_button = response.html.find('button', containing='Сохранить')[0]
-        await save_button.click()
+        # Печать всей страницы для отладки (можно закомментировать, если не нужно)
+        print(response.html.html)
 
-        print("Кнопка 'Сохранить' нажата успешно.")
+        # Поиск кнопки с атрибутом value='Сохранить'
+        save_button = response.html.find('input[type="submit"][value="Сохранить"]')
+
+        if save_button:
+            # Кликаем по кнопке
+            await save_button[0].click()
+            print("Кнопка 'Сохранить' нажата успешно.")
+        else:
+            print("Кнопка 'Сохранить' не найдена на странице.")
     
     except Exception as e:
         print(f"Ошибка при нажатии кнопки: {e}")
+    
     finally:
         # Закрытие сессии
         await session.close()
