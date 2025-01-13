@@ -178,18 +178,16 @@ async def register_cycle(update: Update, context: CallbackContext):
             gender_response = session.get('https://mpets.mobi/save_gender?type=12', headers=headers)
             logger.info(f"Шаг 2: Переход по ссылке save_gender. Статус: {gender_response.status_code}")
 
-            # Шаг 3: Переход по ссылке save для ввода данных
-            save_data_url = 'https://mpets.mobi/save'
+            # Шаг 3: Переход по ссылке save для ввода данных с параметрами в URL
             nickname = generate_username()
             password = generate_username(10)
-            data = {
-                'name': nickname,
-                'password': password,
-                'email': temp_email
-            }
-            save_response = session.post(save_data_url, data=data, headers=headers)
+
+            # Формируем ссылку с параметрами
+            save_data_url = f'https://mpets.mobi/save?name={nickname}&password={password}&email={temp_email}'
+            
+            save_response = session.get(save_data_url, headers=headers)  # Используем GET-запрос для передачи данных
             logger.info(f"Шаг 3: Отправка данных на save. Статус: {save_response.status_code}")
-            logger.debug(f"Отправленные данные: {data}")
+            logger.debug(f"Отправленные данные в URL: {save_data_url}")
 
             if save_response.status_code == 200:
                 logger.info(f"Шаг 3: Данные успешно отправлены для {nickname}, {temp_email}")
