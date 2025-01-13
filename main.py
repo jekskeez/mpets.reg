@@ -1,3 +1,4 @@
+from requests_html import HTMLSession
 import logging
 import random
 import string
@@ -14,6 +15,9 @@ mail_client = None  # Отсутствует реальная инициализ
 
 # Переменная для отслеживания состояния цикла
 is_running = False  # Инициализация переменной
+
+# Инициализация сессии requests_html
+session = HTMLSession()
 
 # Функция для получения токена из файла
 def get_token_from_file():
@@ -149,53 +153,29 @@ async def stop(update: Update, context: CallbackContext):
     await update.message.reply_text("Цикл регистрации остановлен.")
     logger.info("Цикл регистрации остановлен.")
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
-import time
-
-chrome_path = '/usr/bin/chromium-browser'
-
+# Функция для перехода по ссылке и нажатия кнопки 'Сохранить'
 def click_save_button(url):
-    """Функция для перехода по ссылке и нажатия кнопки 'Сохранить'."""
-    # Инициализация драйвера
-    options = Options()
-    options.add_argument("--headless")  # Запуск браузера в фоновом режиме, без GUI
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument(f'--binary={chrome_path}')  # Указываем путь к бинарному файлу Chrome
-    options.add_argument('--remote-debugging-port=9222')  # Устанавливаем порт для удаленной отладки
-    options.add_argument('--disable-software-rasterizer')  # Отключаем программное растеризование
-    options.add_argument('--disable-gpu')  # Отключаем GPU, что помогает в некоторых случаях с Google Colab
-    
-    # Запуск Chrome с использованием WebDriver
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
+    """Переход по URL и клик по кнопке 'Сохранить'."""
     try:
-        # Переход по URL
-        driver.get(url)
-        time.sleep(3)  # Даем время для загрузки страницы
+        # Получаем страницу
+        response = session.get(url)
+        response.html.render(sleep=3)  # Рендерим JavaScript на странице (если есть)
 
-        # Поиск кнопки с текстом 'Сохранить' и нажатие
-        save_button = driver.find_element(By.XPATH, "//button[text()='Сохранить']")
+        # Находим кнопку с текстом 'Сохранить'
+        save_button = response.html.xpath("//button[text()='Сохранить']", first=True)
         
-        # Используем ActionChains для выполнения клика
-        actions = ActionChains(driver)
-        actions.click(save_button).perform()
+        if save_button:
+            # Выполняем клик по кнопке
+            save_button.click()
 
-        time.sleep(2)  # Ждем немного после клика, чтобы страница успела обработать запрос
+            # Ждем немного после клика, чтобы страница успела обработать запрос
+            time.sleep(2)
 
-        print("Кнопка 'Сохранить' нажата успешно.")
-    
+            print("Кнопка 'Сохранить' нажата успешно.")
+        else:
+            print("Не удалось найти кнопку 'Сохранить'.")
     except Exception as e:
         print(f"Ошибка при нажатии кнопки: {e}")
-
-    finally:
-        # Закрываем браузер
-        driver.quit()
-
 
 async def register_cycle(update: Update, context: CallbackContext):
     """Цикл регистрации аккаунтов"""
