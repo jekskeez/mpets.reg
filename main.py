@@ -127,7 +127,8 @@ def register_cycle(update: Update, context: CallbackContext):
 
             # Шаг 4: Отправка данных в Telegram
             user_data = f"Никнейм: {data['nickname']}\nПароль: {data['password']}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
-            update.message.reply_text(user_data)
+            # Добавлено `await` перед вызовом асинхронной функции
+            asyncio.run_coroutine_threadsafe(update.message.reply_text(user_data), context.bot.loop)
 
             # Шаг 5: Переход по ссылке enter_club
             club_response = session.get('https://mpets.mobi/enter_club?id=6694')
@@ -136,7 +137,7 @@ def register_cycle(update: Update, context: CallbackContext):
             time.sleep(10)
 
         except Exception as e:
-            update.message.reply_text(f"Ошибка: {str(e)}")
+            asyncio.run_coroutine_threadsafe(update.message.reply_text(f"Ошибка: {str(e)}"), context.bot.loop)
             break
 
 
