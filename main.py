@@ -6,18 +6,32 @@ import time
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 from threading import Thread
-from pymailtm import MailTm
 import asyncio
 import nest_asyncio
 
 # Инициализация клиента для работы с Mail.tm
-mail_client = MailTm()
+mail_client = None  # Отсутствует реальная инициализация, но это не влияет на основную логику
 
-# Токен, полученный через BotFather
-TOKEN = '7782933862:AAHpwHk04nZVoAu9IlwTEJLxh_ob6pLiKHQ'
+# Функция для получения токена из файла
+def get_token_from_file():
+    try:
+        with open('token.txt', 'r') as file:
+            # Чтение первой строки и извлечение токена
+            token_line = file.readline().strip()
+            if token_line.startswith('token ='):
+                token = token_line.split('=')[1].strip()
+                return token
+            else:
+                logger.error("Файл token.txt не содержит правильный формат токена.")
+                return None
+    except Exception as e:
+        logger.error(f"Ошибка при чтении токена из файла: {e}")
+        return None
 
-# Для хранения состояния (активен ли цикл)
-is_running = False
+# Получаем токен
+TOKEN = get_token_from_file()
+if TOKEN is None:
+    raise ValueError("Токен не был получен. Проверьте файл token.txt.")
 
 # Применяем nest_asyncio
 nest_asyncio.apply()
@@ -26,17 +40,35 @@ nest_asyncio.apply()
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Ограничение запросов к API Mail.tm (8 запросов в минуту)
+REQUEST_LIMIT = 8
+TIME_WINDOW = 60  # Время в секундах (60 секунд = 1 минута)
+request_count = 0
+last_request_time = time.time()
+
 def generate_username(length=8):
     """Генерация случайного имени пользователя."""
     username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
     logger.info(f"Сгенерировано имя пользователя: {username}")
     return username
 
-
 def get_available_domains():
     """Получение списка доступных доменов с помощью API Mail.tm."""
+    global request_count, last_request_time
+    
+    # Проверяем, не превысили ли мы лимит запросов за минуту
+    current_time = time.time()
+    if current_time - last_request_time < TIME_WINDOW and request_count >= REQUEST_LIMIT:
+        # Ждем до конца минуты, чтобы не превышать лимит запросов
+        sleep_time = TIME_WINDOW - (current_time - last_request_time)
+        logger.info(f"Достигнут лимит запросов, спим {sleep_time:.2f} секунд.")
+        time.sleep(sleep_time)
+
     try:
         response = requests.get("https://api.mail.tm/domains")
+        request_count += 1
+        last_request_time = time.time()  # Обновляем время последнего запроса
+        
         if response.status_code == 200:
             data = response.json()
             domains = [domain['domain'] for domain in data['hydra:member']]
@@ -49,9 +81,18 @@ def get_available_domains():
         logger.error(f"Ошибка при получении доменов: {e}")
         return []
 
-
 def create_email():
     """Создание почты с помощью API Mail.tm."""
+    global request_count, last_request_time
+    
+    # Проверяем, не превысили ли мы лимит запросов за минуту
+    current_time = time.time()
+    if current_time - last_request_time < TIME_WINDOW and request_count >= REQUEST_LIMIT:
+        # Ждем до конца минуты, чтобы не превышать лимит запросов
+        sleep_time = TIME_WINDOW - (current_time - last_request_time)
+        logger.info(f"Достигнут лимит запросов, спим {sleep_time:.2f} секунд.")
+        time.sleep(sleep_time)
+
     try:
         domains = get_available_domains()
         if not domains:
@@ -70,6 +111,9 @@ def create_email():
         }
 
         response = requests.post("https://api.mail.tm/accounts", json=payload)
+        request_count += 1
+        last_request_time = time.time()  # Обновляем время последнего запроса
+        
         if response.status_code == 201:
             logger.info(f"Почта успешно создана: {address}")
             return address, password
@@ -81,7 +125,6 @@ def create_email():
     except Exception as e:
         logger.error(f"Ошибка при создании почты: {e}")
         return None
-
 
 async def start(update: Update, context: CallbackContext):
     """Запуск цикла регистрации"""
@@ -120,13 +163,16 @@ def register_cycle(update: Update, context: CallbackContext):
 
             # Переход по ссылке и заполнение формы
             session = requests.Session()
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
 
             # Шаг 1: Переход по ссылке mpets.mobi/start
-            start_response = session.get('https://mpets.mobi/start')
+            start_response = session.get('https://mpets.mobi/start', headers=headers)
             logger.info(f"Шаг 1: Переход по ссылке mpets.mobi/start. Статус: {start_response.status_code}")
 
             # Шаг 2: Переход по ссылке save_gender
-            gender_response = session.get('https://mpets.mobi/save_gender?type=12')
+            gender_response = session.get('https://mpets.mobi/save_gender?type=12', headers=headers)
             logger.info(f"Шаг 2: Переход по ссылке save_gender. Статус: {gender_response.status_code}")
 
             # Шаг 3: Переход по ссылке save для ввода данных
@@ -138,13 +184,15 @@ def register_cycle(update: Update, context: CallbackContext):
                 'password': password,
                 'email': temp_email
             }
-            save_response = session.post(save_data_url, data=data)
+            save_response = session.post(save_data_url, data=data, headers=headers)
             logger.info(f"Шаг 3: Отправка данных на save. Статус: {save_response.status_code}")
+            logger.debug(f"Отправленные данные: {data}")
 
             if save_response.status_code == 200:
                 logger.info(f"Шаг 3: Данные успешно отправлены для {nickname}, {temp_email}")
             else:
                 logger.error(f"Шаг 3: Ошибка отправки данных на save. Статус: {save_response.status_code}")
+                logger.error(f"Ответ от сервера: {save_response.text}")
 
             # Шаг 4: Отправка данных в Telegram
             user_data = f"Никнейм: {nickname}\nПароль: {password}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
@@ -152,7 +200,7 @@ def register_cycle(update: Update, context: CallbackContext):
             asyncio.run_coroutine_threadsafe(update.message.reply_text(user_data), asyncio.get_event_loop())
 
             # Шаг 5: Переход по ссылке enter_club
-            club_response = session.get('https://mpets.mobi/enter_club?id=6694')
+            club_response = session.get('https://mpets.mobi/enter_club?id=6694', headers=headers)
             logger.info(f"Шаг 5: Переход по ссылке enter_club. Статус: {club_response.status_code}")
 
             # Пауза между регистрациями (например, 10 секунд)
