@@ -1,9 +1,3 @@
-!pip install selenium
-!apt-get update # для обновления репозиториев
-!apt install -y chromium-chromedriver # установка браузера Chrome и ChromeDriver
-!cp /usr/lib/chromium-browser/chromedriver /usr/bin # копирование драйвера в нужное место
-!pip install webdriver_manager # для упрощенной работы с драйверами
-
 import time
 import random
 import string
