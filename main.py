@@ -130,18 +130,13 @@ def create_email():
         logger.error(f"Ошибка при создании почты: {e}")
         return None
 
-async def start(update: Update, context: CallbackContext):
-    """Запуск цикла регистрации"""
-    global is_running
-    if not is_running:
-        is_running = True
-        await update.message.reply_text("Цикл регистрации начался!")
-        logger.info("Цикл регистрации начался")
-        
-        # Запускаем асинхронную задачу для выполнения цикла регистрации
-        await register_cycle(update, context)  # Запускаем как асинхронную задачу
-    else:
-        await update.message.reply_text("Цикл уже запущен.")
+async def start(update, context):
+    """Обработчик команды /start."""
+    try:
+        await update.message.reply_text("Регистрация началась!")
+        await register_cycle(update, context)  # Передаем и update, и context
+    except Exception as e:
+        await update.message.reply_text(f"Ошибка при запуске: {str(e)}")
 
 async def stop(update: Update, context: CallbackContext):
     """Остановка цикла регистрации"""
@@ -176,7 +171,7 @@ async def click_save_button(session, url):
     except Exception as e:
         print(f"Ошибка при нажатии кнопки: {e}")
 
-async def register_cycle(session, update, context):
+async def register_cycle(update, context):
     """Цикл регистрации аккаунтов, выполняющий все шаги в одной сессии."""
     while True:
         try:
