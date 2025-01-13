@@ -149,6 +149,48 @@ async def stop(update: Update, context: CallbackContext):
     await update.message.reply_text("Цикл регистрации остановлен.")
     logger.info("Цикл регистрации остановлен.")
 
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.action_chains import ActionChains
+import time
+
+def click_save_button(url):
+    """Функция для перехода по ссылке и нажатия кнопки 'Сохранить'."""
+    # Инициализация драйвера
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")  # Запуск браузера в фоновом режиме, без GUI
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    
+    # Запуск Chrome с использованием WebDriver
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+    try:
+        # Переход по URL
+        driver.get(url)
+        time.sleep(3)  # Даем время для загрузки страницы
+
+        # Поиск кнопки с текстом 'Сохранить' и нажатие
+        save_button = driver.find_element(By.XPATH, "//button[text()='Сохранить']")
+        
+        # Используем ActionChains для выполнения клика
+        actions = ActionChains(driver)
+        actions.click(save_button).perform()
+
+        time.sleep(2)  # Ждем немного после клика, чтобы страница успела обработать запрос
+
+        print("Кнопка 'Сохранить' нажата успешно.")
+    
+    except Exception as e:
+        print(f"Ошибка при нажатии кнопки: {e}")
+
+    finally:
+        # Закрываем браузер
+        driver.quit()
+
 async def register_cycle(update: Update, context: CallbackContext):
     """Цикл регистрации аккаунтов"""
     while is_running:
@@ -181,22 +223,13 @@ async def register_cycle(update: Update, context: CallbackContext):
             logger.info(f"Шаг 2: Переход по ссылке save_gender. Статус: {gender_response.status_code}")
 
             # Шаг 3: Переход по ссылке save для ввода данных с параметрами в URL
-            # Используем сгенерированное имя для никнейма и пароля
             nickname = username
             password = username  # Пароль такой же как и никнейм
 
-            # Формируем ссылку с параметрами
             save_data_url = f'https://mpets.mobi/save?name={nickname}&password={password}&email={temp_email}'
             
-            save_response = session.get(save_data_url, headers=headers)  # Используем GET-запрос для передачи данных
-            logger.info(f"Шаг 3: Отправка данных на save. Статус: {save_response.status_code}")
-            logger.debug(f"Отправленные данные в URL: {save_data_url}")
-
-            if save_response.status_code == 200:
-                logger.info(f"Шаг 3: Данные успешно отправлены для {nickname}, {temp_email}")
-            else:
-                logger.error(f"Шаг 3: Ошибка отправки данных на save. Статус: {save_response.status_code}")
-                logger.error(f"Ответ от сервера: {save_response.text}")
+            # Теперь вызываем функцию для клика по кнопке "Сохранить"
+            click_save_button(save_data_url)
 
             # Шаг 4: Отправка данных в Telegram по user_id
             user_data = f"Никнейм: {nickname}\nПароль: {password}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
