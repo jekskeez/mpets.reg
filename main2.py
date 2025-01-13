@@ -173,11 +173,11 @@ async def register_cycle(update, context):
             temp_email, temp_email_password = email_data
 
             # Переход по ссылке и заполнение формы
-            start_response = session.get('https://mpets.mobi/start')
+            start_response = await session.get('https://mpets.mobi/start')  # Асинхронный запрос
             logger.info(f"Шаг 1: Переход по ссылке mpets.mobi/start. Статус: {start_response.status_code}")
 
             # Переход по ссылке save_gender
-            gender_response = session.get('https://mpets.mobi/save_gender?type=12')
+            gender_response = await session.get('https://mpets.mobi/save_gender?type=12')  # Асинхронный запрос
             logger.info(f"Шаг 2: Переход по ссылке save_gender. Статус: {gender_response.status_code}")
 
             # Шаг 3: Переход по ссылке save для ввода данных с параметрами в URL
