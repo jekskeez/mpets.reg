@@ -22,9 +22,16 @@ is_running = False
 # Применяем nest_asyncio
 nest_asyncio.apply()
 
+# Настройка логирования
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.DEBUG)  # Уровень DEBUG для более подробного логирования
+logger = logging.getLogger(__name__)
+
 def generate_username(length=8):
     """Генерация случайного имени пользователя."""
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+    username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+    logger.debug(f"Сгенерировано имя пользователя: {username}")
+    return username
 
 
 def get_available_domains():
@@ -33,12 +40,14 @@ def get_available_domains():
         response = requests.get("https://api.mail.tm/domains")
         if response.status_code == 200:
             data = response.json()
-            return [domain['domain'] for domain in data['hydra:member']]
+            domains = [domain['domain'] for domain in data['hydra:member']]
+            logger.debug(f"Получены домены: {domains}")
+            return domains
         else:
-            print(f"Не удалось получить список доменов. Код ответа: {response.status_code}")
+            logger.error(f"Не удалось получить список доменов. Код ответа: {response.status_code}")
             return []
     except Exception as e:
-        print(f"Ошибка при получении доменов: {e}")
+        logger.error(f"Ошибка при получении доменов: {e}")
         return []
 
 
@@ -47,7 +56,7 @@ def create_email():
     try:
         domains = get_available_domains()
         if not domains:
-            print("Список доменов пуст.")
+            logger.error("Список доменов пуст.")
             return None
         
         domain = domains[0]
@@ -63,15 +72,15 @@ def create_email():
 
         response = requests.post("https://api.mail.tm/accounts", json=payload)
         if response.status_code == 201:
-            print(f"Почта успешно создана: {address}")
+            logger.info(f"Почта успешно создана: {address}")
             return address, password
         elif response.status_code == 422:
-            print("Ошибка 422: Некорректные данные (например, имя пользователя или домен).")
+            logger.error("Ошибка 422: Некорректные данные (например, имя пользователя или домен).")
         else:
-            print(f"Не удалось создать почту. Код ответа: {response.status_code}")
+            logger.error(f"Не удалось создать почту. Код ответа: {response.status_code}")
         return None
     except Exception as e:
-        print(f"Ошибка при создании почты: {e}")
+        logger.error(f"Ошибка при создании почты: {e}")
         return None
 
 
@@ -81,6 +90,7 @@ async def start(update: Update, context: CallbackContext):
     if not is_running:
         is_running = True
         await update.message.reply_text("Цикл регистрации начался!")
+        logger.info("Цикл регистрации начался")
         thread = Thread(target=register_cycle, args=(update, context))
         thread.start()
     else:
@@ -92,6 +102,7 @@ async def stop(update: Update, context: CallbackContext):
     global is_running
     is_running = False
     await update.message.reply_text("Цикл регистрации остановлен.")
+    logger.info("Цикл регистрации остановлен.")
 
 
 def register_cycle(update: Update, context: CallbackContext):
@@ -101,10 +112,11 @@ def register_cycle(update: Update, context: CallbackContext):
             # Создаем временную почту
             email_data = create_email()
             if email_data is None:
+                logger.warning("Не удалось создать почту, пробую снова...")
                 asyncio.run_coroutine_threadsafe(update.message.reply_text("Не удалось создать почту, пробую снова..."), asyncio.get_event_loop())
                 time.sleep(5)
                 continue
-            
+
             temp_email, temp_email_password = email_data
 
             # Переход по ссылке и заполнение формы
@@ -112,9 +124,11 @@ def register_cycle(update: Update, context: CallbackContext):
 
             # Шаг 1: Переход по ссылке mpets.mobi/start
             start_response = session.get('https://mpets.mobi/start')
+            logger.debug(f"Шаг 1 - Переход по ссылке mpets.mobi/start: {start_response.status_code}")
 
             # Шаг 2: Переход по ссылке save_gender
             gender_response = session.get('https://mpets.mobi/save_gender?type=12')
+            logger.debug(f"Шаг 2 - Переход по ссылке save_gender: {gender_response.status_code}")
 
             # Шаг 3: Переход по ссылке save для ввода данных
             save_data_url = 'https://mpets.mobi/save'
@@ -124,29 +138,28 @@ def register_cycle(update: Update, context: CallbackContext):
                 'email': temp_email
             }
             save_response = session.post(save_data_url, data=data)
+            logger.debug(f"Шаг 3 - Данные отправлены на save: {save_response.status_code}")
 
             # Шаг 4: Отправка данных в Telegram
             user_data = f"Никнейм: {data['nickname']}\nПароль: {data['password']}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
+            logger.info(f"Шаг 4 - Отправка данных в Telegram: {user_data}")
             asyncio.run_coroutine_threadsafe(update.message.reply_text(user_data), asyncio.get_event_loop())
 
             # Шаг 5: Переход по ссылке enter_club
             club_response = session.get('https://mpets.mobi/enter_club?id=6694')
+            logger.debug(f"Шаг 5 - Переход по ссылке enter_club: {club_response.status_code}")
 
             # Пауза между регистрациями (например, 10 секунд)
             time.sleep(10)
 
         except Exception as e:
+            logger.error(f"Ошибка при регистрации: {str(e)}")
             asyncio.run_coroutine_threadsafe(update.message.reply_text(f"Ошибка: {str(e)}"), asyncio.get_event_loop())
             break
 
 
 async def main():
     """Запуск бота"""
-    # Настройка логирования
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        level=logging.INFO)
-    logger = logging.getLogger(__name__)
-
     application = Application.builder().token(TOKEN).build()
 
     # Обработчики команд
