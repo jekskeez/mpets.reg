@@ -146,27 +146,28 @@ async def stop(update: Update, context: CallbackContext):
     logger.info("Цикл регистрации остановлен.")
 
 # Функция для перехода по ссылке и нажатия кнопки 'Сохранить'
-async def click_save_button(session, url):
+async def click_save_button(url):
     """Функция для перехода по ссылке и нажатия кнопки 'Сохранить'."""
+    session = AsyncHTMLSession()  # Используем асинхронную сессию
+
     try:
         # Переход по URL
-        response = await session.get(url)
-        
-        # Ожидание рендеринга страницы
-        await response.html.arender()
+        response = await session.get(url)  # Используем await для асинхронного запроса
 
-        # Печать всей страницы для отладки (можно закомментировать, если не нужно)
-        print(response.html.html)
+        # Ожидание загрузки страницы
+        await response.html.arender()  # Это важно, чтобы выполнить JavaScript
 
-        # Поиск кнопки с атрибутом value='Сохранить'
-        save_button = response.html.find('input[type="submit"][value="Сохранить"]')
-
+        # Поиск кнопки с текстом 'Сохранить'
+        save_button = response.html.find("input[value='Сохранить']", first=True)
         if save_button:
-            # Кликаем по кнопке
-            await save_button[0].click()
+            await save_button.click()  # Нажимаем на кнопку
+
+            # Делаем паузу, чтобы дать времени на обработку клика
+            await asyncio.sleep(2)
+
             print("Кнопка 'Сохранить' нажата успешно.")
         else:
-            print("Кнопка 'Сохранить' не найдена на странице.")
+            print("Кнопка 'Сохранить' не найдена.")
     
     except Exception as e:
         print(f"Ошибка при нажатии кнопки: {e}")
