@@ -131,16 +131,23 @@ def register_cycle(update: Update, context: CallbackContext):
 
             # Шаг 3: Переход по ссылке save для ввода данных
             save_data_url = 'https://mpets.mobi/save'
+            nickname = generate_username()
+            password = generate_username(10)
             data = {
-                'nickname': generate_username(),
-                'password': generate_username(10),
+                'name': nickname,
+                'password': password,
                 'email': temp_email
             }
             save_response = session.post(save_data_url, data=data)
             logger.info(f"Шаг 3: Отправка данных на save. Статус: {save_response.status_code}")
 
+            if save_response.status_code == 200:
+                logger.info(f"Шаг 3: Данные успешно отправлены для {nickname}, {temp_email}")
+            else:
+                logger.error(f"Шаг 3: Ошибка отправки данных на save. Статус: {save_response.status_code}")
+
             # Шаг 4: Отправка данных в Telegram
-            user_data = f"Никнейм: {data['nickname']}\nПароль: {data['password']}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
+            user_data = f"Никнейм: {nickname}\nПароль: {password}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
             logger.info(f"Шаг 4: Отправка данных в Telegram: {user_data}")
             asyncio.run_coroutine_threadsafe(update.message.reply_text(user_data), asyncio.get_event_loop())
 
