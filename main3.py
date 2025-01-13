@@ -6,7 +6,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from telegram import Bot
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Application, CommandHandler
 from webdriver_manager.chrome import ChromeDriverManager
 
 # Константы для ограничения запросов
@@ -159,7 +159,7 @@ def read_token_from_file():
         return None
 
 # Команда /start для начала регистрации
-def start(update, context):
+async def start(update, context):
     chat_id = update.message.chat_id
 
     # Начинаем процесс регистрации
@@ -175,13 +175,13 @@ def start(update, context):
         requests.get('https://mpets.mobi/enter_club?id=6694')
 
         # Сообщение о завершении
-        update.message.reply_text('Регистрация прошла успешно!')
+        await update.message.reply_text('Регистрация прошла успешно!')
     else:
-        update.message.reply_text('Не удалось создать аккаунт.')
+        await update.message.reply_text('Не удалось создать аккаунт.')
 
 # Команда /stop для остановки работы
-def stop(update, context):
-    update.message.reply_text('Цикл регистрации остановлен.')
+async def stop(update, context):
+    await update.message.reply_text('Цикл регистрации остановлен.')
 
 # Основная функция
 def main():
@@ -194,14 +194,14 @@ def main():
     global bot
     bot = Bot(token=token)
 
-    updater = Updater(token=token, use_context=True)
-    dp = updater.dispatcher
+    # Используем новый Application вместо Updater
+    application = Application.builder().token(token).build()
 
-    dp.add_handler(CommandHandler('start', start))
-    dp.add_handler(CommandHandler('stop', stop))
+    # Добавление обработчиков команд
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler('stop', stop))
 
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
