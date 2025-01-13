@@ -97,6 +97,8 @@ def register_account():
     chrome_options.add_argument('--headless')  # Работает в фоновом режиме
     chrome_options.add_argument('--no-sandbox')  # Для работы в Docker/Colab
     chrome_options.add_argument('--disable-dev-shm-usage')  # Для Colab
+    
+    # Используем правильную передачу аргументов в WebDriver
     driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
 
     try:
