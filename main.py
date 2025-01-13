@@ -173,8 +173,8 @@ async def click_save_button(url):
         print(f"Ошибка при нажатии кнопки: {e}")
 
 async def register_cycle(update, context):
-    """Цикл регистрации аккаунтов, выполняющий все шаги в одной сессии."""
-    while True:
+    """Цикл регистрации аккаунтов"""
+    while is_running:
         try:
             # Генерация одной строки для никнейма, пароля и пароля почты
             username = generate_username()
@@ -210,7 +210,7 @@ async def register_cycle(update, context):
             save_data_url = f'https://mpets.mobi/save?name={nickname}&password={password}&email={temp_email}'
             
             # Теперь вызываем функцию для клика по кнопке "Сохранить"
-            await click_save_button(session, save_data_url)
+            await click_save_button(save_data_url)  # Здесь важно использовать await для асинхронного вызова
 
             # Шаг 4: Отправка данных в Telegram по user_id
             user_data = f"Никнейм: {nickname}\nПароль: {password}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
