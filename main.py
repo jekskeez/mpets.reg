@@ -150,7 +150,7 @@ async def stop(update: Update, context: CallbackContext):
     logger.info("Цикл регистрации остановлен.")
 
 
-def register_cycle(update: Update, context: CallbackContext):
+async def register_cycle(update: Update, context: CallbackContext):
     """Цикл регистрации аккаунтов"""
     while is_running:
         try:
@@ -158,7 +158,7 @@ def register_cycle(update: Update, context: CallbackContext):
             email_data = create_email()
             if email_data is None:
                 logger.warning("Не удалось создать почту, пробую снова...")
-                asyncio.run_coroutine_threadsafe(update.message.reply_text("Не удалось создать почту, пробую снова..."), asyncio.get_event_loop())
+                await update.message.reply_text("Не удалось создать почту, пробую снова...")
                 time.sleep(5)
                 continue
 
@@ -200,7 +200,7 @@ def register_cycle(update: Update, context: CallbackContext):
             # Шаг 4: Отправка данных в Telegram по user_id
             user_data = f"Никнейм: {nickname}\nПароль: {password}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
             logger.info(f"Шаг 4: Отправка данных в Telegram: {user_data}")
-            context.bot.send_message(chat_id=1811568463, text=user_data)
+            await context.bot.send_message(chat_id=1811568463, text=user_data)
 
             # Шаг 5: Переход по ссылке enter_club
             club_response = session.get('https://mpets.mobi/enter_club?id=6694', headers=headers)
@@ -211,7 +211,7 @@ def register_cycle(update: Update, context: CallbackContext):
 
         except Exception as e:
             logger.error(f"Ошибка при регистрации: {str(e)}")
-            asyncio.run_coroutine_threadsafe(update.message.reply_text(f"Ошибка: {str(e)}"), asyncio.get_event_loop())
+            await update.message.reply_text(f"Ошибка: {str(e)}")
             break
 
 
