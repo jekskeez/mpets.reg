@@ -8,6 +8,7 @@ from telegram.ext import Application, CommandHandler, CallbackContext
 from threading import Thread
 import asyncio
 import nest_asyncio
+from faker import Faker
 
 # Инициализация логирования
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -15,6 +16,9 @@ logger = logging.getLogger(__name__)
 
 # Инициализация клиента для работы с Mail.tm
 mail_client = None  # Отсутствует реальная инициализация, но это не влияет на основную логику
+
+# Создаем объект Faker для генерации русских данных
+fake = Faker('ru_RU')
 
 # Переменная для отслеживания состояния цикла
 is_running = False  # Инициализация переменной
@@ -49,10 +53,26 @@ TIME_WINDOW = 60  # Время в секундах (60 секунд = 1 мину
 request_count = 0
 last_request_time = time.time()
 
-def generate_username(length=8):
+def generate_mail(length=8):
     """Генерация случайного имени пользователя, которое будет использоваться для никнейма, пароля и пароля почты."""
-    username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
-    logger.info(f"Сгенерировано имя пользователя: {username}")
+    username_mail = ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+    logger.info(f"Сгенерировано имя пользователя: {username_mail}")
+    return username_mail
+
+def generate_username():
+    """Генерация никнейма с русским именем и 5 случайными цифрами."""
+    # Генерация случайного имени
+    nickname = fake.first_name()
+    
+    # Генерация 5 случайных чисел
+    random_numbers = ''.join(random.choices('0123456789', k=5))
+    
+    # Объединение имени с числами
+    username = nickname + random_numbers
+    
+    # Ограничиваем длину до 12 символов (если нужно)
+    username = username[:12]
+    
     return username
 
 def get_available_domains():
@@ -103,9 +123,9 @@ def create_email():
             return None
         
         domain = domains[0]
-        username = generate_username()
-        address = f"{username}@{domain}"
-        password = generate_username(12)
+        username_mail = generate_mail()
+        address = f"{username_mail}@{domain}"
+        password = generate_mail(12)
 
         # Данные для создания аккаунта
         payload = {
@@ -188,7 +208,7 @@ async def register_cycle(update, context):
             }
             
             saving_response = session.post(save_url, data=save_data, headers=headers)
-            logger.info(f"Шаг 2: Переход по ссылке save_pet. Статус: {saving_response.status_code}")
+            logger.info(f"Шаг 3: Переход по ссылке save_pet. Статус: {saving_response.status_code}")
 
             # Шаг 4: Отправка данных в Telegram по user_id
             user_data = f"Никнейм: {nickname}\nПароль: {password}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
