@@ -213,10 +213,10 @@ async def register_cycle(update, context):
             nickname = username
             password = username  # Пароль такой же как и никнейм
 
-            save_data_url = f'https://mpets.mobi/save?name={nickname}&password={password}&email={temp_email}'
+            save_data_url = f'https://mpets.mobi/save_pet?name={nickname}&password={password}&email={temp_email}'
             
-            # Теперь вызываем функцию для клика по кнопке "Сохранить"
-            await click_save_button(save_data_url)  # Здесь важно использовать await для асинхронного вызова
+            saving_response = session.get(f'https://mpets.mobi/save_pet?name={nickname}&password={password}&email={temp_email}', headers=headers)
+            logger.info(f"Шаг 2: Переход по ссылке save_pet. Статус: {saving_response.status_code}")
 
             # Шаг 4: Отправка данных в Telegram по user_id
             user_data = f"Никнейм: {nickname}\nПароль: {password}\nПочта: {temp_email}\nПароль почты: {temp_email_password}"
