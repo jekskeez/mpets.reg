@@ -10,6 +10,10 @@ from threading import Thread
 import asyncio
 import nest_asyncio
 
+# Инициализация логирования
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Инициализация клиента для работы с Mail.tm
 mail_client = None  # Отсутствует реальная инициализация, но это не влияет на основную логику
 
@@ -39,10 +43,6 @@ if TOKEN is None:
 
 # Применяем nest_asyncio
 nest_asyncio.apply()
-
-# Настройка логирования
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Ограничение запросов к API Mail.tm (8 запросов в минуту)
 REQUEST_LIMIT = 8
@@ -131,7 +131,7 @@ def create_email():
         return None
 
 async def start(update, context):
-    """Обработчик команды /start."""
+    """Обработчик команды /start.""" 
     try:
         await update.message.reply_text("Регистрация началась!")
         await register_cycle(update, context)  # Передаем и update, и context
@@ -179,6 +179,7 @@ async def click_save_button(url):
 
 async def register_cycle(update, context):
     """Цикл регистрации аккаунтов"""
+    global is_running
     while is_running:
         try:
             # Генерация одной строки для никнейма, пароля и пароля почты
@@ -233,10 +234,9 @@ async def register_cycle(update, context):
             logger.error(f"Ошибка при регистрации: {str(e)}")
             await update.message.reply_text(f"Ошибка: {str(e)}")
             break
-            
+
 async def main():
     """Запуск бота"""
-    session = AsyncHTMLSession()  # Создаем сессию один раз
     application = Application.builder().token(TOKEN).build()
 
     # Обработчики команд
@@ -245,9 +245,6 @@ async def main():
 
     # Запуск бота
     await application.run_polling()
-
-    # После запуска бота начинаем цикл регистрации
-    await register_cycle(session)  # Передаем сессию в цикл
 
 if __name__ == '__main__':
     asyncio.get_event_loop().run_until_complete(main())
