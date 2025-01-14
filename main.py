@@ -148,14 +148,16 @@ async def stop(update: Update, context: CallbackContext):
 async def click_save_button(url):
     """Функция для перехода по ссылке и нажатия кнопки 'Сохранить' через Pyppeteer."""
     try:
-        browser = await launch(headless=False)  # Запускаем браузер с интерфейсом (можно сделать headless=True для безголового режима)
+        # Запускаем браузер в headless-режиме (без графического интерфейса)
+        browser = await launch(headless=True)  # Убедитесь, что headless=True
+
         page = await browser.newPage()  # Создаем новую страницу
 
         # Переход по URL
         await page.goto(url)
 
         # Ожидание загрузки страницы, чтобы все элементы и скрипты загрузились
-        await page.waitForSelector("input[value='Сохранить']")  # Ждем появления кнопки
+        await page.waitForSelector("input[value='Сохранить']", timeout=10000)  # Ждем появления кнопки, timeout=10 сек.
 
         # Поиск кнопки и нажатие на нее
         save_button = await page.querySelector("input[value='Сохранить']")
@@ -165,15 +167,14 @@ async def click_save_button(url):
             # Делаем паузу, чтобы дать времени на обработку клика
             await asyncio.sleep(2)
 
-            print("Кнопка 'Сохранить' нажата успешно.")
+            logger.info("Кнопка 'Сохранить' нажата успешно.")
         else:
-            print("Кнопка 'Сохранить' не найдена.")
+            logger.error("Кнопка 'Сохранить' не найдена.")
         
         # Закрываем браузер
         await browser.close()
 
     except Exception as e:
-        print(f"Ошибка при нажатии кнопки: {e}")
         logger.error(f"Ошибка при нажатии кнопки: {e}")
 
 async def register_cycle(update, context):
