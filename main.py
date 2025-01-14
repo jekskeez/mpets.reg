@@ -132,11 +132,10 @@ def create_email():
 
 async def start(update, context):
     """Обработчик команды /start.""" 
-    try:
-        await update.message.reply_text("Регистрация началась!")
-        await register_cycle(update, context)  # Передаем и update, и context
-    except Exception as e:
-        await update.message.reply_text(f"Ошибка при запуске: {str(e)}")
+    global is_running
+    is_running = True  # Запускаем цикл регистрации
+    await update.message.reply_text("Регистрация началась!")
+    await register_cycle(update, context)  # Передаем и update, и context
 
 async def stop(update: Update, context: CallbackContext):
     """Остановка цикла регистрации"""
