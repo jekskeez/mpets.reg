@@ -215,7 +215,7 @@ async def register_cycle(update, context):
 
             save_data_url = f'https://mpets.mobi/save_pet?name={nickname}&password={password}&email={temp_email}'
             
-            saving_response = session.get(f'https://mpets.mobi/save_pet?name={nickname}&password={password}&email={temp_email}', headers=headers)
+            saving_response = session.post(f'https://mpets.mobi/save_pet?name={nickname}&password={password}&email={temp_email}', headers=headers)
             logger.info(f"Шаг 2: Переход по ссылке save_pet. Статус: {saving_response.status_code}")
 
             # Шаг 4: Отправка данных в Telegram по user_id
