@@ -1,4 +1,3 @@
-from pyppeteer import launch
 import logging
 import random
 import string
@@ -143,39 +142,6 @@ async def stop(update: Update, context: CallbackContext):
     is_running = False
     await update.message.reply_text("Цикл регистрации остановлен.")
     logger.info("Цикл регистрации остановлен.")
-
-# Функция для перехода по ссылке и нажатия кнопки 'Сохранить'
-async def click_save_button(url):
-    """Функция для перехода по ссылке и нажатия кнопки 'Сохранить' через Pyppeteer."""
-    try:
-        # Запускаем браузер в headless-режиме (без графического интерфейса)
-        browser = await launch(headless=True)  # Убедитесь, что headless=True
-
-        page = await browser.newPage()  # Создаем новую страницу
-
-        # Переход по URL
-        await page.goto(url)
-
-        # Ожидание загрузки страницы, чтобы все элементы и скрипты загрузились
-        await page.waitForSelector("input[value='Сохранить']", timeout=10000)  # Ждем появления кнопки, timeout=10 сек.
-
-        # Поиск кнопки и нажатие на нее
-        save_button = await page.querySelector("input[value='Сохранить']")
-        if save_button:
-            await save_button.click()  # Нажимаем на кнопку
-
-            # Делаем паузу, чтобы дать времени на обработку клика
-            await asyncio.sleep(2)
-
-            logger.info("Кнопка 'Сохранить' нажата успешно.")
-        else:
-            logger.error("Кнопка 'Сохранить' не найдена.")
-        
-        # Закрываем браузер
-        await browser.close()
-
-    except Exception as e:
-        logger.error(f"Ошибка при нажатии кнопки: {e}")
 
 async def register_cycle(update, context):
     """Цикл регистрации аккаунтов"""
