@@ -1,4 +1,4 @@
-from requests_html import AsyncHTMLSession
+from pyppeteer import launch
 import logging
 import random
 import string
@@ -147,18 +147,19 @@ async def stop(update: Update, context: CallbackContext):
 
 # Функция для перехода по ссылке и нажатия кнопки 'Сохранить'
 async def click_save_button(url):
-    """Функция для перехода по ссылке и нажатия кнопки 'Сохранить'."""
-    session = AsyncHTMLSession()  # Используем асинхронную сессию
-
+    """Функция для перехода по ссылке и нажатия кнопки 'Сохранить' через Pyppeteer."""
     try:
+        browser = await launch(headless=False)  # Запускаем браузер с интерфейсом (можно сделать headless=True для безголового режима)
+        page = await browser.newPage()  # Создаем новую страницу
+
         # Переход по URL
-        response = await session.get(url)  # Используем await для асинхронного запроса
+        await page.goto(url)
 
-        # Ожидание загрузки страницы
-        await response.html.arender()  # Это важно, чтобы выполнить JavaScript
+        # Ожидание загрузки страницы, чтобы все элементы и скрипты загрузились
+        await page.waitForSelector("input[value='Сохранить']")  # Ждем появления кнопки
 
-        # Поиск кнопки с текстом 'Сохранить'
-        save_button = response.html.find("input[value='Сохранить']", first=True)
+        # Поиск кнопки и нажатие на нее
+        save_button = await page.querySelector("input[value='Сохранить']")
         if save_button:
             await save_button.click()  # Нажимаем на кнопку
 
@@ -168,9 +169,13 @@ async def click_save_button(url):
             print("Кнопка 'Сохранить' нажата успешно.")
         else:
             print("Кнопка 'Сохранить' не найдена.")
-    
+        
+        # Закрываем браузер
+        await browser.close()
+
     except Exception as e:
         print(f"Ошибка при нажатии кнопки: {e}")
+        logger.error(f"Ошибка при нажатии кнопки: {e}")
 
 async def register_cycle(update, context):
     """Цикл регистрации аккаунтов"""
