@@ -9,15 +9,10 @@ import asyncio
 import nest_asyncio
 
 # ==== Марков-генератор слов (3-грам) ====
-
 from collections import defaultdict, Counter
 
 class MarkovWordGenerator:
     def __init__(self, seeds, n=3):
-        """
-        seeds: список стартовых слов (строк)
-        n: длина n-грам (по умолчанию 3)
-        """
         self.n = n
         self.model = defaultdict(Counter)
         self._build_model(seeds)
@@ -42,10 +37,9 @@ class MarkovWordGenerator:
                 break
             result.append(nxt)
             gram = gram[1:] + nxt
-        # капитализуем первый символ
         return "".join(result).capitalize()
 
-# Список seed-слов (взяли из вашего примера)
+# Список seed-слов
 SEEDS = [
     "Азирис", "Тутовка", "Тогол", "Баррель", "Всемирность", "Глиптодонт",
     "Минори", "Омежник", "Полевица", "Пирамидальный", "Светский",
@@ -55,19 +49,15 @@ SEEDS = [
     "Вытва", "Шугурово", "Регтайм", "Завражье", "Трихалк", "Скочилов",
     "Кольяда", "Мутаген"
 ]
-
-# Создаём генератор
 markov_gen = MarkovWordGenerator(SEEDS, n=3)
 
 # ==== Конфиг и инициализация ====
-
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 nest_asyncio.apply()
 
-# Чтение Telegram-токена из файла
 def get_token_from_file():
     try:
         with open('token.txt', 'r') as f:
@@ -82,7 +72,7 @@ TOKEN = get_token_from_file()
 if not TOKEN:
     raise RuntimeError("Токен не найден в token.txt")
 
-# Параметры Mail.tm (упрощённо)
+# ==== Mail.tm лимиты ====
 REQUEST_LIMIT = 8
 TIME_WINDOW = 60
 request_count = 0
@@ -100,9 +90,9 @@ def get_available_domains():
         r = requests.get("https://api.mail.tm/domains")
         request_count += 1
         last_req = time.time()
-        data = r.json().get('hydra:member', [])
-        return [d['domain'] for d in data]
-    except:
+        return [d['domain'] for d in r.json().get('hydra:member', [])]
+    except Exception as e:
+        logger.error(f"Ошибка domains API: {e}")
         return []
 
 def create_email():
@@ -114,14 +104,19 @@ def create_email():
     addr = f"{user}@{domain}"
     pwd = generate_mail(12)
     try:
-        resp = requests.post("https://api.mail.tm/accounts", json={"address": addr, "password": pwd})
+        resp = requests.post(
+            "https://api.mail.tm/accounts",
+            json={"address": addr, "password": pwd}
+        )
         global request_count, last_req
         request_count += 1
         last_req = time.time()
         if resp.status_code == 201:
             return addr, pwd
+        else:
+            logger.error(f"Mail.tm создаёт ошибку: {resp.status_code}")
     except Exception as e:
-        logger.error(f"Mail.tm error: {e}")
+        logger.error(f"Mail.tm exception: {e}")
     return None
 
 is_running = False
@@ -141,21 +136,37 @@ async def stop(update: Update, context: CallbackContext):
 
 async def register_cycle(update, context):
     global is_running
+    chat_id = update.effective_chat.id
+
     while is_running:
         try:
-            # Генерим ник через марковский генератор
+            # 1) Генерим ник с проверкой
             nickname = markov_gen.generate(max_length=8)
-            password = "kaidomaks"  # можно сделать отдельно, если нужно
+            logger.info(f"Марков сгенерил: {nickname}")
 
-            # Создаём почту
+            # если ник короче 4 или содержит не буквы — несколько попыток
+            tries = 0
+            while (len(nickname) < 4 or not nickname.isalpha()) and tries < 5:
+                nickname = markov_gen.generate(max_length=8)
+                tries += 1
+                logger.warning(f"Повторная марковка ({tries}): {nickname}")
+
+            if len(nickname) < 4:
+                # фоллбэк на простой seed
+                nickname = random.choice(SEEDS)
+                logger.warning(f"Марковка сжала в шлак, берём seed: {nickname}")
+
+            password = nickname  # по необходимости можно сделать отдельный пароль
+
+            # 2) Создаём временную почту
             email_data = create_email()
             if not email_data:
-                await update.message.reply_text("Не удалось создать почту, ждём 5 сек...")
-                await asyncio.sleep(5)
+                await context.bot.send_message(chat_id=chat_id, text="Не удалось создать почту, ждём 10 сек...")
+                await asyncio.sleep(10)
                 continue
             temp_email, temp_pwd = email_data
 
-            # Сессия и переходы по mpets
+            # 3) Регистрация на mpets
             sess = requests.Session()
             headers = {'User-Agent': 'Mozilla/5.0'}
             sess.get('https://mpets.mobi/start', headers=headers)
@@ -167,16 +178,19 @@ async def register_cycle(update, context):
             )
             sess.get('https://mpets.mobi/enter_club?id=6694', headers=headers)
 
-            # Отправка результатов себе в Telegram
-            info = (f"Ник: {nickname}\nПароль: {password}\n"
-                    f"Почта: {temp_email}\nПочт.пароль: {temp_pwd}")
-            await context.bot.send_message(chat_id=630965641, text=info)
+            # 4) Отправляем инфо в Telegram
+            info = (
+                f"Ник: {nickname}\nПароль: {password}\n"
+                f"Почта: {temp_email}\nПочт.пароль: {temp_pwd}"
+            )
+            await context.bot.send_message(chat_id=chat_id, text=info)
 
-            await asyncio.sleep(10)
+            # 5) Пауза, чтобы не превысить лимит Mail.tm
+            await asyncio.sleep(12)
 
         except Exception as e:
-            logger.error(f"Ошибка в цикле: {e}")
-            await update.message.reply_text(f"Ошибка: {e}")
+            logger.error(f"Ошибка в цикле регистрации: {e}")
+            await context.bot.send_message(chat_id=chat_id, text=f"Ошибка: {e}")
             break
 
 async def main():
