@@ -7,6 +7,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 import asyncio
 import nest_asyncio
+import os
 
 # ==== Марков-генератор слов (3-грам) ====
 from collections import defaultdict, Counter
@@ -58,6 +59,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 nest_asyncio.apply()
 
+# Файл для хранения использованных ников
+USED_FILE = 'used_nicks.txt'
+if not os.path.exists(USED_FILE):
+    open(USED_FILE, 'w', encoding='utf-8').close()
+
+# Загружаем уже использованные ники в set
+with open(USED_FILE, 'r', encoding='utf-8') as f:
+    used_nicks = set(line.strip() for line in f if line.strip())
+
+# Функция сохранения нового ника
+def save_nick(nick):
+    with open(USED_FILE, 'a', encoding='utf-8') as f:
+        f.write(nick + '\n')
+    used_nicks.add(nick)
+
+# Чтение Telegram-токена из файла
 def get_token_from_file():
     try:
         with open('token.txt', 'r') as f:
@@ -140,23 +157,21 @@ async def register_cycle(update, context):
 
     while is_running:
         try:
-            # 1) Генерим ник с проверкой
-            nickname = markov_gen.generate(max_length=8)
-            logger.info(f"Марков сгенерил: {nickname}")
-
-            # если ник короче 4 или содержит не буквы — несколько попыток
-            tries = 0
-            while (len(nickname) < 4 or not nickname.isalpha()) and tries < 5:
-                nickname = markov_gen.generate(max_length=8)
-                tries += 1
-                logger.warning(f"Повторная марковка ({tries}): {nickname}")
-
-            if len(nickname) < 4:
-                # фоллбэк на простой seed
+            # 1) Генерим уникальный ник
+            nickname = None
+            for _ in range(10):  # до 10 попыток
+                cand = markov_gen.generate(max_length=8)
+                if len(cand) >= 4 and cand.isalpha() and cand not in used_nicks:
+                    nickname = cand
+                    break
+            if not nickname:
                 nickname = random.choice(SEEDS)
-                logger.warning(f"Марковка сжала в шлак, берём seed: {nickname}")
-
-            password = nickname  # по необходимости можно сделать отдельный пароль
+                if nickname in used_nicks:
+                    await context.bot.send_message(chat_id=chat_id, text="Все seed-ники уже использованы!")
+                    break
+            save_nick(nickname)
+            logger.info(f"Используем ник: {nickname}")
+            password = "kaidomaks"
 
             # 2) Создаём временную почту
             email_data = create_email()
