@@ -145,7 +145,7 @@ async def register_cycle(update, context):
         try:
             # Генерим ник через марковский генератор
             nickname = markov_gen.generate(max_length=8)
-            password = nickname  # можно сделать отдельно, если нужно
+            password = "kaidomaks"  # можно сделать отдельно, если нужно
 
             # Создаём почту
             email_data = create_email()
