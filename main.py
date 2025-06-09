@@ -145,7 +145,7 @@ async def register_cycle(update, context):
         try:
             # Генерим ник через марковский генератор
             nickname = markov_gen.generate(max_length=8)
-            password = nickname  # можно сделать отдельно, если нужно
+            password = kaidomaks  # можно сделать отдельно, если нужно
 
             # Создаём почту
             email_data = create_email()
@@ -170,7 +170,7 @@ async def register_cycle(update, context):
             # Отправка результатов себе в Telegram
             info = (f"Ник: {nickname}\nПароль: {password}\n"
                     f"Почта: {temp_email}\nПочт.пароль: {temp_pwd}")
-            await context.bot.send_message(chat_id=1811568463, text=info)
+            await context.bot.send_message(chat_id=630965641, text=info)
 
             await asyncio.sleep(10)
 
